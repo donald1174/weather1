@@ -427,6 +427,15 @@
   function renderHourlyChart(loc, forecastList){
     const canvas = document.getElementById(`hourly-${loc.key}`);
     if(!canvas) return;
+    if(typeof Chart === 'undefined'){
+      console.warn('Chart.js가 로드되지 않아 시간별 차트를 건너뜁니다.');
+      canvas.replaceWith(Object.assign(document.createElement('div'), {
+        className: 'status-msg',
+        style: 'padding:20px 0;font-size:11px;',
+        textContent: '차트 라이브러리를 불러오지 못했습니다 (아래 시간별 카드는 정상 표시됩니다).',
+      }));
+      return;
+    }
     const slice = forecastList.slice(0, 8);
     const labels = slice.map(item => hourLabel(item.dt_txt));
     const temps = slice.map(item => item.main.temp);
