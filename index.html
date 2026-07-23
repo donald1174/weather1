@@ -24,8 +24,12 @@
   html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:'Noto Sans KR','IBM Plex Mono',sans-serif;}
   body{
     background-image:
-      radial-gradient(circle at 10% 0%, rgba(95,168,212,0.08), transparent 40%),
-      radial-gradient(circle at 90% 10%, rgba(232,178,61,0.07), transparent 35%);
+      linear-gradient(180deg, rgba(15,22,32,0.88), rgba(15,22,32,0.94) 40%, var(--bg) 85%),
+      url('https://www.hanwha.com/upload/newsroom/media-library/contents/20240529/1716960570522.jpg');
+    background-size: cover;
+    background-position: center top;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
   }
   .wrap{max-width:1000px;margin:0 auto;padding:36px 24px 70px;}
 
@@ -109,7 +113,8 @@
 
   <footer>
     데이터 제공: OpenWeatherMap (openweathermap.org) · 무료 API 기준 갱신 주기는 대략 10분~2시간입니다.<br>
-    이 페이지는 정적 사이트(GitHub Pages)에서 브라우저가 직접 OpenWeatherMap API를 호출하는 구조입니다.
+    이 페이지는 정적 사이트(GitHub Pages)에서 브라우저가 직접 OpenWeatherMap API를 호출하는 구조입니다.<br>
+    배경 사진: Hanwha Corporation Newsroom Media Library (ⓒ Hanwha)
   </footer>
 
 </div>
