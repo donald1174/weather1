@@ -433,6 +433,7 @@
     const rain = slice.map(item => (item.rain && item.rain['3h']) ? item.rain['3h'] : 0);
 
     new Chart(canvas, {
+      type: 'bar',
       data: {
         labels,
         datasets: [
@@ -501,7 +502,13 @@
         return { loc, html: renderLocationCard(loc, current, daily, forecast.list, uvi), forecastList: forecast.list };
       }));
       container.innerHTML = results.map(r => r.html).join('');
-      results.forEach(r => renderHourlyChart(r.loc, r.forecastList));
+      results.forEach(r => {
+        try{
+          renderHourlyChart(r.loc, r.forecastList);
+        } catch(chartErr){
+          console.error('시간별 차트 렌더링 실패:', chartErr);
+        }
+      });
       updatedEl.textContent = '마지막 갱신: ' + new Date().toLocaleString('ko-KR');
     } catch(err){
       container.innerHTML = `<div class="status-msg err">날씨 정보를 불러오지 못했습니다: ${err.message}</div>`;
