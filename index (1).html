@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>바그다드 · 비스마야 날씨</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0f1620;
+    --panel: #17202b;
+    --panel-2: #1d2733;
+    --line: #2a3542;
+    --sun: #e8b23d;
+    --sky: #5fa8d4;
+    --cyan: #5fd4c4;
+    --red: #e2665a;
+    --text: #eef2f5;
+    --text-dim: #93a1ad;
+    --text-faint: #5d6a76;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:'Noto Sans KR','IBM Plex Mono',sans-serif;}
+  body{
+    background-image:
+      radial-gradient(circle at 10% 0%, rgba(95,168,212,0.08), transparent 40%),
+      radial-gradient(circle at 90% 10%, rgba(232,178,61,0.07), transparent 35%);
+  }
+  .wrap{max-width:1000px;margin:0 auto;padding:36px 24px 70px;}
+
+  header{border-bottom:1px solid var(--line);padding-bottom:20px;margin-bottom:26px;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.14em;color:var(--sun);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+  .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--sun);box-shadow:0 0 8px var(--sun);animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.35;}}
+  h1{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:30px;margin:0;letter-spacing:-0.01em;}
+  .subtitle{color:var(--text-dim);font-size:13.5px;margin-top:8px;line-height:1.6;}
+  .updated{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--text-faint);margin-top:10px;}
+
+  .locations{display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr));gap:20px;}
+
+  .loc-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:24px 26px;}
+  .loc-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;}
+  .loc-name{font-family:'Space Grotesk',sans-serif;font-size:19px;font-weight:600;}
+  .loc-sub{font-size:11.5px;color:var(--text-faint);font-family:'IBM Plex Mono',monospace;margin-top:4px;}
+
+  .current{display:flex;align-items:center;gap:18px;padding:16px 0 20px;border-bottom:1px dashed var(--line);margin-bottom:18px;}
+  .current img{width:70px;height:70px;filter:drop-shadow(0 0 8px rgba(232,178,61,0.25));}
+  .current .temp{font-family:'Space Grotesk',sans-serif;font-size:40px;font-weight:700;line-height:1;}
+  .current .desc{font-size:13.5px;color:var(--text-dim);margin-top:6px;}
+  .current .feels{font-size:11.5px;color:var(--text-faint);font-family:'IBM Plex Mono',monospace;margin-top:4px;}
+
+  .meta-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;}
+  .meta-cell{background:var(--panel-2);border-radius:9px;padding:10px 12px;}
+  .meta-cell .label{font-size:10.5px;color:var(--text-faint);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.04em;}
+  .meta-cell .val{font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;margin-top:3px;}
+
+  .forecast-label{font-size:11.5px;color:var(--text-faint);font-family:'IBM Plex Mono',monospace;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.04em;}
+  .forecast-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;}
+  .fday{background:var(--panel-2);border-radius:9px;padding:12px 6px;text-align:center;}
+  .fday .d{font-size:11px;color:var(--text-dim);font-family:'IBM Plex Mono',monospace;}
+  .fday img{width:32px;height:32px;margin:2px 0;}
+  .fday .hi{font-size:13px;font-weight:600;}
+  .fday .lo{font-size:11px;color:var(--text-faint);}
+
+  .status-msg{grid-column:1/-1;text-align:center;padding:40px 0;color:var(--text-faint);font-family:'IBM Plex Mono',monospace;font-size:13px;}
+  .status-msg.err{color:var(--red);}
+
+  footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);font-size:11px;color:var(--text-faint);line-height:1.7;font-family:'IBM Plex Mono',monospace;}
+
+  @media (max-width:480px){
+    h1{font-size:24px;}
+    .forecast-row{grid-template-columns:repeat(5,1fr);gap:5px;}
+    .fday{padding:8px 3px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow"><span class="dot"></span>LIVE WEATHER</div>
+    <h1>바그다드 · 비스마야 날씨</h1>
+    <div class="subtitle">OpenWeatherMap 공개 API로 현재 날씨와 5일 예보를 보여줍니다.</div>
+    <div class="updated" id="updated-time">불러오는 중…</div>
+  </header>
+
+  <div class="locations" id="locations">
+    <div class="status-msg" id="global-status">날씨 정보를 불러오는 중입니다…</div>
+  </div>
+
+  <footer>
+    데이터 제공: OpenWeatherMap (openweathermap.org) · 무료 API 기준 갱신 주기는 대략 10분~2시간입니다.<br>
+    이 페이지는 정적 사이트(GitHub Pages)에서 브라우저가 직접 OpenWeatherMap API를 호출하는 구조입니다.
+  </footer>
+
+</div>
+
+<script>
+  // ⚠️ 여기에 OpenWeatherMap에서 발급받은 API 키를 붙여넣으세요.
+  // https://home.openweathermap.org/api_keys 에서 확인 가능합니다.
+  const API_KEY = '6fed6fafc1d0100e0eeb021492fb8a95';
+
+  const LOCATIONS = [
+    { name: '바그다드', sub: 'Baghdad, Iraq', lat: 33.3152, lon: 44.3661 },
+    { name: '비스마야', sub: 'Bismayah New City, Diyala', lat: 33.19306, lon: 44.61806 },
+  ];
+
+  const WEATHER_KR = {
+    // OpenWeatherMap이 lang=kr을 지원하지만 혹시를 대비한 보조 매핑
+  };
+
+  function fmtTemp(t){
+    return Math.round(t) + '°';
+  }
+
+  function iconUrl(icon){
+    return `https://openweathermap.org/img/wn/${icon}@2x.png`;
+  }
+
+  async function fetchCurrent(loc){
+    const url = `https://api.openweathermap.org/data/2.5/weather?lat=${loc.lat}&lon=${loc.lon}&units=metric&lang=kr&appid=${API_KEY}`;
+    const res = await fetch(url);
+    if(!res.ok) throw new Error(`현재 날씨 조회 실패 (HTTP ${res.status})`);
+    return res.json();
+  }
+
+  async function fetchForecast(loc){
+    const url = `https://api.openweathermap.org/data/2.5/forecast?lat=${loc.lat}&lon=${loc.lon}&units=metric&lang=kr&appid=${API_KEY}`;
+    const res = await fetch(url);
+    if(!res.ok) throw new Error(`예보 조회 실패 (HTTP ${res.status})`);
+    return res.json();
+  }
+
+  // 3시간 간격 예보(list)를 날짜별 최고/최저/대표아이콘으로 묶기
+  function groupDaily(list){
+    const byDay = {};
+    list.forEach(item => {
+      const day = item.dt_txt.slice(0, 10);
+      if(!byDay[day]) byDay[day] = { temps: [], icons: {} };
+      byDay[day].temps.push(item.main.temp);
+      const icon = item.weather[0].icon.replace('n', 'd'); // 낮 아이콘으로 통일
+      byDay[day].icons[icon] = (byDay[day].icons[icon] || 0) + 1;
+    });
+    return Object.entries(byDay).slice(0, 5).map(([day, v]) => {
+      const topIcon = Object.entries(v.icons).sort((a,b) => b[1]-a[1])[0][0];
+      return {
+        day,
+        hi: Math.max(...v.temps),
+        lo: Math.min(...v.temps),
+        icon: topIcon,
+      };
+    });
+  }
+
+  function dayLabel(dateStr){
+    const d = new Date(dateStr + 'T00:00:00');
+    const days = ['일','월','화','수','목','금','토'];
+    return `${d.getMonth()+1}/${d.getDate()} (${days[d.getDay()]})`;
+  }
+
+  function renderLocationCard(loc, current, forecastDaily){
+    const w = current.weather[0];
+    return `
+      <div class="loc-card">
+        <div class="loc-head">
+          <div>
+            <div class="loc-name">${loc.name}</div>
+            <div class="loc-sub">${loc.sub}</div>
+          </div>
+        </div>
+        <div class="current">
+          <img src="${iconUrl(w.icon)}" alt="${w.description}">
+          <div>
+            <div class="temp">${fmtTemp(current.main.temp)}</div>
+            <div class="desc">${w.description}</div>
+            <div class="feels">체감 ${fmtTemp(current.main.feels_like)} · 최고 ${fmtTemp(current.main.temp_max)} / 최저 ${fmtTemp(current.main.temp_min)}</div>
+          </div>
+        </div>
+        <div class="meta-grid">
+          <div class="meta-cell"><div class="label">습도</div><div class="val">${current.main.humidity}%</div></div>
+          <div class="meta-cell"><div class="label">바람</div><div class="val">${current.wind.speed.toFixed(1)} m/s</div></div>
+          <div class="meta-cell"><div class="label">기압</div><div class="val">${current.main.pressure} hPa</div></div>
+        </div>
+        <div class="forecast-label">5일 예보</div>
+        <div class="forecast-row">
+          ${forecastDaily.map(f => `
+            <div class="fday">
+              <div class="d">${dayLabel(f.day)}</div>
+              <img src="${iconUrl(f.icon)}" alt="">
+              <div class="hi">${fmtTemp(f.hi)}</div>
+              <div class="lo">${fmtTemp(f.lo)}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  async function init(){
+    const container = document.getElementById('locations');
+    const updatedEl = document.getElementById('updated-time');
+
+    if(!API_KEY || API_KEY === 'YOUR_OPENWEATHERMAP_API_KEY'){
+      container.innerHTML = `<div class="status-msg err">API 키가 설정되지 않았습니다. 코드 상단의 API_KEY 값을 발급받은 키로 바꿔주세요.</div>`;
+      updatedEl.textContent = '';
+      return;
+    }
+
+    try{
+      const cardsHtml = await Promise.all(LOCATIONS.map(async (loc) => {
+        const [current, forecast] = await Promise.all([fetchCurrent(loc), fetchForecast(loc)]);
+        const daily = groupDaily(forecast.list);
+        return renderLocationCard(loc, current, daily);
+      }));
+      container.innerHTML = cardsHtml.join('');
+      updatedEl.textContent = '마지막 갱신: ' + new Date().toLocaleString('ko-KR');
+    } catch(err){
+      container.innerHTML = `<div class="status-msg err">날씨 정보를 불러오지 못했습니다: ${err.message}</div>`;
+      updatedEl.textContent = '';
+    }
+  }
+
+  init();
+  setInterval(init, 10 * 60 * 1000); // 10분마다 자동 갱신
+</script>
+
+</body>
+</html>
