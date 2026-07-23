@@ -2,10 +2,11 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>바그다드 · 비스마야 날씨</title>
+<title>바그다드·비스마야 · 서울·통영 날씨</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
 <style>
   :root{
     --bg: #0f1620;
@@ -33,13 +34,22 @@
   }
   .wrap{max-width:1000px;margin:0 auto;padding:36px 24px 70px;}
 
-  header{border-bottom:1px solid var(--line);padding-bottom:20px;margin-bottom:26px;}
+  header{border-bottom:1px solid var(--line);padding-bottom:20px;margin-bottom:20px;}
   .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.14em;color:var(--sun);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
   .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--sun);box-shadow:0 0 8px var(--sun);animation:pulse 2s infinite;}
   @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.35;}}
-  h1{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:30px;margin:0;letter-spacing:-0.01em;}
+  h1{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:28px;margin:0;letter-spacing:-0.01em;}
   .subtitle{color:var(--text-dim);font-size:13.5px;margin-top:8px;line-height:1.6;}
   .updated{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--text-faint);margin-top:10px;}
+
+  /* main tabs */
+  .main-tabs{display:flex;gap:6px;margin-bottom:24px;}
+  .main-tab{font-family:'Space Grotesk',sans-serif;font-size:14.5px;font-weight:600;padding:10px 18px;background:var(--panel);border:1px solid var(--line);border-radius:9px;color:var(--text-dim);cursor:pointer;}
+  .main-tab.active{background:var(--sun);color:#1a1405;border-color:var(--sun);}
+  .main-tab:hover:not(.active){color:var(--text);border-color:var(--sky);}
+
+  .panel{display:none;}
+  .panel.active{display:block;}
 
   .locations{display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr));gap:20px;}
 
@@ -68,6 +78,44 @@
   .current .desc{font-size:13.5px;color:var(--text-dim);margin-top:6px;}
   .current .feels{font-size:11.5px;color:var(--text-faint);font-family:'IBM Plex Mono',monospace;margin-top:4px;}
 
+  /* today hero + hourly */
+  .today-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;}
+  .hero-col{display:flex;flex-direction:column;gap:14px;}
+  .weather-hero{position:relative;border-radius:16px;overflow:hidden;min-height:190px;padding:16px 18px;display:flex;flex-direction:column;justify-content:space-between;color:#fff;}
+  .weather-hero.cond-clear{background:linear-gradient(160deg,#3f6fa8 0%,#7fa8c9 45%,#e8b23d 130%);}
+  .weather-hero.cond-clouds{background:linear-gradient(160deg,#232c38 0%,#3c4a5c 55%,#5c6b7c 130%);}
+  .weather-hero.cond-rain{background:linear-gradient(160deg,#1c2735 0%,#2d3f52 55%,#3a5570 130%);}
+  .weather-hero.cond-thunder{background:linear-gradient(160deg,#161c26 0%,#2a2f3d 55%,#3d3550 130%);}
+  .weather-hero.cond-snow{background:linear-gradient(160deg,#3a4657 0%,#6c7c8f 55%,#c9d6e0 130%);}
+  .weather-hero.cond-mist{background:linear-gradient(160deg,#2a323d 0%,#4b5563 55%,#6b7684 130%);}
+  .hero-time{align-self:flex-end;font-family:'IBM Plex Mono',monospace;font-size:12px;background:rgba(0,0,0,0.28);padding:4px 9px;border-radius:6px;}
+  .hero-bottom{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;}
+  .hero-temp{font-family:'Space Grotesk',sans-serif;font-size:46px;font-weight:700;line-height:1;text-shadow:0 2px 10px rgba(0,0,0,0.3);}
+  .hero-desc{text-align:right;}
+  .hero-desc .d1{font-size:14px;font-weight:600;}
+  .hero-desc .d2{font-size:11.5px;opacity:0.85;margin-top:3px;font-family:'IBM Plex Mono',monospace;}
+
+  .stat-grid-2x3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+  .stat-cell{background:var(--panel-2);border-radius:9px;padding:9px 8px;text-align:center;}
+  .stat-cell .ic{font-size:14px;}
+  .stat-cell .lb{font-size:9.5px;color:var(--text-faint);font-family:'IBM Plex Mono',monospace;margin-top:3px;}
+  .stat-cell .vl{font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;margin-top:2px;}
+
+  .hourly-col{display:flex;}
+  .hourly-card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px 16px 12px;width:100%;display:flex;flex-direction:column;}
+  .hourly-card h4{font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;margin:0 0 10px;}
+  .hourly-chart-wrap{height:90px;margin-bottom:8px;}
+  .hourly-scroll{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;}
+  .hcell{flex:none;width:58px;text-align:center;background:var(--panel-2);border-radius:9px;padding:8px 4px;}
+  .hcell .t{font-size:10px;color:var(--text-faint);font-family:'IBM Plex Mono',monospace;}
+  .hcell img{width:26px;height:26px;margin:2px 0;}
+  .hcell .p{font-size:9.5px;color:var(--sky);font-family:'IBM Plex Mono',monospace;}
+  .hcell .tm{font-size:12px;font-weight:600;margin-top:2px;}
+
+  @media (max-width:620px){
+    .today-grid{grid-template-columns:1fr;}
+  }
+
   .meta-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;}
   .meta-cell{background:var(--panel-2);border-radius:9px;padding:10px 12px;}
   .meta-cell .label{font-size:10.5px;color:var(--text-faint);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.04em;}
@@ -86,10 +134,26 @@
 
   footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);font-size:11px;color:var(--text-faint);line-height:1.7;font-family:'IBM Plex Mono',monospace;}
 
+  /* climate normals */
+  .climate-section{margin-top:8px;}
+  .climate-title{font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:600;margin:0 0 4px;}
+  .climate-note{font-size:12px;color:var(--text-faint);line-height:1.6;margin-bottom:16px;}
+  .climate-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;}
+  .climate-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 24px;margin-bottom:16px;}
+  .climate-card h3{font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;margin:0 0 14px;}
+  .climate-table{width:100%;border-collapse:collapse;font-family:'IBM Plex Mono',monospace;font-size:12px;}
+  .climate-table th{color:var(--text-faint);font-weight:500;text-align:center;padding:6px 2px;border-bottom:1px solid var(--line);}
+  .climate-table td{text-align:center;padding:8px 2px;}
+  .climate-table .m{color:var(--text-dim);}
+  .climate-table .hi{color:var(--sun);font-weight:600;}
+  .climate-table .lo{color:var(--sky);}
+  .climate-table tr:not(:last-child) td{border-bottom:1px solid rgba(42,53,66,0.5);}
+
   @media (max-width:480px){
-    h1{font-size:24px;}
+    h1{font-size:22px;}
     .forecast-row{grid-template-columns:repeat(5,1fr);gap:5px;}
     .fday{padding:8px 3px;}
+    .main-tab{padding:9px 12px;font-size:13px;}
   }
 </style>
 </head>
@@ -98,18 +162,65 @@
 
   <header>
     <div class="eyebrow"><span class="dot"></span>LIVE WEATHER</div>
-    <h1>바그다드 · 비스마야 날씨</h1>
+    <h1>지역별 날씨</h1>
     <div class="subtitle">OpenWeatherMap 공개 API로 현재 날씨와 5일 예보를 보여줍니다.</div>
     <div class="updated" id="updated-time">불러오는 중…</div>
   </header>
 
-  <div class="aqi-strip" id="aqi-strip">
-    <div class="status-msg" style="grid-column:1/-1;padding:16px 0;">미세먼지 정보를 불러오는 중…</div>
+  <div class="main-tabs">
+    <button class="main-tab active" data-panel="iraq">바그다드 · 비스마야</button>
+    <button class="main-tab" data-panel="korea">서울 · 통영</button>
   </div>
 
-  <div class="locations" id="locations">
-    <div class="status-msg" id="global-status">날씨 정보를 불러오는 중입니다…</div>
-  </div>
+  <!-- ===================== 이라크 PANEL ===================== -->
+  <section class="panel active" id="panel-iraq">
+
+    <div class="aqi-strip" id="aqi-strip-iraq">
+      <div class="status-msg" style="grid-column:1/-1;padding:16px 0;">미세먼지 정보를 불러오는 중…</div>
+    </div>
+
+    <div class="locations" id="locations-iraq">
+      <div class="status-msg">날씨 정보를 불러오는 중입니다…</div>
+    </div>
+
+    <div class="climate-section">
+      <div class="climate-title">비스마야 월 평균 최고·최저기온</div>
+      <div class="climate-note">최근 수년간 기후 통계를 종합한 평년값(℃)입니다. 실시간 관측치가 아니라 매달 대략 이 범위를 오간다는 참고용 수치예요. 비스마야는 바그다드 도심에서 약 10km 거리로 기후 특성이 사실상 동일한 값을 적용했습니다.</div>
+      <div class="climate-card">
+        <h3>비스마야</h3>
+        <table class="climate-table" id="climate-bismayah"></table>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ===================== 한국 PANEL ===================== -->
+  <section class="panel" id="panel-korea">
+
+    <div class="aqi-strip" id="aqi-strip-korea">
+      <div class="status-msg" style="grid-column:1/-1;padding:16px 0;">미세먼지 정보를 불러오는 중…</div>
+    </div>
+
+    <div class="locations" id="locations-korea">
+      <div class="status-msg">날씨 정보를 불러오는 중입니다…</div>
+    </div>
+
+    <div class="climate-section">
+      <div class="climate-title">서울 · 통영 월 평균 최고·최저기온</div>
+      <div class="climate-note">최근 수년간 기후 통계를 종합한 평년값(℃)입니다. 실시간 관측치가 아니라 매달 대략 이 범위를 오간다는 참고용 수치예요.</div>
+      <div class="climate-row">
+        <div class="climate-card">
+          <h3>서울</h3>
+          <table class="climate-table" id="climate-seoul"></table>
+        </div>
+        <div class="climate-card">
+          <h3>통영</h3>
+          <table class="climate-table" id="climate-tongyeong"></table>
+        </div>
+      </div>
+    </div>
+
+  </section>
 
   <footer>
     데이터 제공: OpenWeatherMap (openweathermap.org) · 무료 API 기준 갱신 주기는 대략 10분~2시간입니다.<br>
@@ -124,13 +235,36 @@
   // https://home.openweathermap.org/api_keys 에서 확인 가능합니다.
   const API_KEY = '6fed6fafc1d0100e0eeb021492fb8a95';
 
-  const LOCATIONS = [
-    { name: '바그다드', sub: 'Baghdad, Iraq', lat: 33.3152, lon: 44.3661 },
-    { name: '비스마야', sub: 'Bismayah New City, Diyala', lat: 33.19306, lon: 44.61806 },
-  ];
+  // ---------- 탭 전환 ----------
+  const mainTabs = document.querySelectorAll('.main-tab');
+  const panels = document.querySelectorAll('.panel');
+  mainTabs.forEach(btn => {
+    btn.addEventListener('click', () => {
+      mainTabs.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const target = btn.dataset.panel;
+      panels.forEach(p => p.classList.toggle('active', p.id === 'panel-' + target));
+    });
+  });
 
-  const WEATHER_KR = {
-    // OpenWeatherMap이 lang=kr을 지원하지만 혹시를 대비한 보조 매핑
+  // ---------- 지역 그룹 ----------
+  const GROUPS = {
+    iraq: {
+      locations: [
+        { key: 'baghdad', name: '바그다드', sub: 'Baghdad, Iraq', lat: 33.3152, lon: 44.3661 },
+        { key: 'bismayah', name: '비스마야', sub: 'Bismayah New City, Diyala', lat: 33.19306, lon: 44.61806 },
+      ],
+      locationsEl: 'locations-iraq',
+      aqiEl: 'aqi-strip-iraq',
+    },
+    korea: {
+      locations: [
+        { key: 'seoul', name: '서울', sub: 'Seoul, South Korea', lat: 37.5665, lon: 126.9780 },
+        { key: 'tongyeong', name: '통영', sub: 'Tongyeong, South Korea', lat: 34.8544, lon: 128.4331 },
+      ],
+      locationsEl: 'locations-korea',
+      aqiEl: 'aqi-strip-korea',
+    },
   };
 
   function fmtTemp(t){
@@ -182,8 +316,50 @@
     return `${d.getMonth()+1}/${d.getDate()} (${days[d.getDay()]})`;
   }
 
-  function renderLocationCard(loc, current, forecastDaily){
+  function condClass(main){
+    const m = (main || '').toLowerCase();
+    if(m === 'clear') return 'cond-clear';
+    if(m === 'clouds') return 'cond-clouds';
+    if(m === 'rain' || m === 'drizzle') return 'cond-rain';
+    if(m === 'thunderstorm') return 'cond-thunder';
+    if(m === 'snow') return 'cond-snow';
+    if(['mist','fog','haze','smoke','dust','sand'].includes(m)) return 'cond-mist';
+    return 'cond-clouds';
+  }
+
+  function localTimeString(current){
+    const ms = (current.dt + current.timezone) * 1000;
+    const d = new Date(ms);
+    let h = d.getUTCHours();
+    const min = d.getUTCMinutes();
+    const ampm = h < 12 ? '오전' : '오후';
+    h = h % 12; if(h === 0) h = 12;
+    return `${ampm} ${h}:${String(min).padStart(2,'0')}`;
+  }
+
+  const COMPASS = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+  function compassDir(deg){
+    if(deg === undefined || deg === null) return '';
+    return COMPASS[Math.round(deg / 22.5) % 16];
+  }
+
+  function dewPoint(tempC, humidity){
+    const a = 17.625, b = 243.04;
+    const alpha = Math.log(humidity / 100) + (a * tempC) / (b + tempC);
+    return (b * alpha) / (a - alpha);
+  }
+
+  function hourLabel(dtTxt){
+    return dtTxt.slice(11, 16);
+  }
+
+  function renderLocationCard(loc, current, forecastDaily, forecastList, uvi){
     const w = current.weather[0];
+    const cClass = condClass(w.main);
+    const dp = dewPoint(current.main.temp, current.main.humidity).toFixed(0);
+    const visKm = current.visibility ? (current.visibility / 1000).toFixed(1) : '-';
+    const hourlySlice = forecastList.slice(0, 8); // 3시간 간격 × 8 = 24시간
+
     return `
       <div class="loc-card">
         <div class="loc-head">
@@ -192,19 +368,47 @@
             <div class="loc-sub">${loc.sub}</div>
           </div>
         </div>
-        <div class="current">
-          <img src="${iconUrl(w.icon)}" alt="${w.description}">
-          <div>
-            <div class="temp">${fmtTemp(current.main.temp)}</div>
-            <div class="desc">${w.description}</div>
-            <div class="feels">체감 ${fmtTemp(current.main.feels_like)} · 최고 ${fmtTemp(current.main.temp_max)} / 최저 ${fmtTemp(current.main.temp_min)}</div>
+
+        <div class="today-grid">
+          <div class="hero-col">
+            <div class="weather-hero ${cClass}">
+              <div class="hero-time">${localTimeString(current)}</div>
+              <div class="hero-bottom">
+                <div class="hero-temp">${fmtTemp(current.main.temp)}</div>
+                <div class="hero-desc">
+                  <div class="d1">${w.description}</div>
+                  <div class="d2">체감 ${fmtTemp(current.main.feels_like)}</div>
+                </div>
+              </div>
+            </div>
+            <div class="stat-grid-2x3">
+              <div class="stat-cell"><div class="ic">💨</div><div class="lb">바람</div><div class="vl">${current.wind.speed.toFixed(1)}m/s ${compassDir(current.wind.deg)}</div></div>
+              <div class="stat-cell"><div class="ic">💧</div><div class="lb">습도</div><div class="vl">${current.main.humidity}%</div></div>
+              <div class="stat-cell"><div class="ic">👁️</div><div class="lb">가시거리</div><div class="vl">${visKm}km</div></div>
+              <div class="stat-cell"><div class="ic">⏱️</div><div class="lb">기압</div><div class="vl">${current.main.pressure}hPa</div></div>
+              <div class="stat-cell"><div class="ic">☀️</div><div class="lb">UV지수</div><div class="vl">${uvi !== null ? uvi.toFixed(1) : '-'}</div></div>
+              <div class="stat-cell"><div class="ic">🌡️</div><div class="lb">이슬점</div><div class="vl">${dp}°</div></div>
+            </div>
+          </div>
+
+          <div class="hourly-col">
+            <div class="hourly-card">
+              <h4>시간별 예보 (3시간 간격)</h4>
+              <div class="hourly-chart-wrap"><canvas id="hourly-${loc.key}"></canvas></div>
+              <div class="hourly-scroll">
+                ${hourlySlice.map(item => `
+                  <div class="hcell">
+                    <div class="t">${hourLabel(item.dt_txt)}</div>
+                    <img src="${iconUrl(item.weather[0].icon)}" alt="">
+                    <div class="p">${Math.round((item.pop || 0) * 100)}%</div>
+                    <div class="tm">${fmtTemp(item.main.temp)}</div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
           </div>
         </div>
-        <div class="meta-grid">
-          <div class="meta-cell"><div class="label">습도</div><div class="val">${current.main.humidity}%</div></div>
-          <div class="meta-cell"><div class="label">바람</div><div class="val">${current.wind.speed.toFixed(1)} m/s</div></div>
-          <div class="meta-cell"><div class="label">기압</div><div class="val">${current.main.pressure} hPa</div></div>
-        </div>
+
         <div class="forecast-label">5일 예보</div>
         <div class="forecast-row">
           ${forecastDaily.map(f => `
@@ -220,27 +424,87 @@
     `;
   }
 
-  async function init(){
-    const container = document.getElementById('locations');
+  function renderHourlyChart(loc, forecastList){
+    const canvas = document.getElementById(`hourly-${loc.key}`);
+    if(!canvas) return;
+    const slice = forecastList.slice(0, 8);
+    const labels = slice.map(item => hourLabel(item.dt_txt));
+    const temps = slice.map(item => item.main.temp);
+    const rain = slice.map(item => (item.rain && item.rain['3h']) ? item.rain['3h'] : 0);
+
+    new Chart(canvas, {
+      data: {
+        labels,
+        datasets: [
+          {
+            type: 'bar',
+            label: '강수량(mm/3h)',
+            data: rain,
+            backgroundColor: 'rgba(95,168,212,0.35)',
+            borderRadius: 3,
+            yAxisID: 'y1',
+            order: 2,
+          },
+          {
+            type: 'line',
+            label: '기온',
+            data: temps,
+            borderColor: '#e8b23d',
+            backgroundColor: 'transparent',
+            borderWidth: 2,
+            tension: 0.3,
+            pointRadius: 0,
+            yAxisID: 'y',
+            order: 1,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { enabled: true } },
+        scales: {
+          x: { ticks: { color: '#5d6a76', font: { size: 9 } }, grid: { display: false } },
+          y: { display: false },
+          y1: { display: false, beginAtZero: true },
+        },
+      },
+    });
+  }
+
+  async function fetchUvi(loc){
+    try{
+      const url = `https://api.openweathermap.org/data/2.5/uvi?lat=${loc.lat}&lon=${loc.lon}&appid=${API_KEY}`;
+      const res = await fetch(url);
+      if(!res.ok) return null;
+      const data = await res.json();
+      return typeof data.value === 'number' ? data.value : null;
+    } catch(e){
+      return null;
+    }
+  }
+
+  async function initWeather(groupKey){
+    const group = GROUPS[groupKey];
+    const container = document.getElementById(group.locationsEl);
     const updatedEl = document.getElementById('updated-time');
 
     if(!API_KEY || API_KEY === 'YOUR_OPENWEATHERMAP_API_KEY'){
       container.innerHTML = `<div class="status-msg err">API 키가 설정되지 않았습니다. 코드 상단의 API_KEY 값을 발급받은 키로 바꿔주세요.</div>`;
-      updatedEl.textContent = '';
       return;
     }
 
     try{
-      const cardsHtml = await Promise.all(LOCATIONS.map(async (loc) => {
-        const [current, forecast] = await Promise.all([fetchCurrent(loc), fetchForecast(loc)]);
+      const results = await Promise.all(group.locations.map(async (loc) => {
+        const [current, forecast, uvi] = await Promise.all([fetchCurrent(loc), fetchForecast(loc), fetchUvi(loc)]);
         const daily = groupDaily(forecast.list);
-        return renderLocationCard(loc, current, daily);
+        return { loc, html: renderLocationCard(loc, current, daily, forecast.list, uvi), forecastList: forecast.list };
       }));
-      container.innerHTML = cardsHtml.join('');
+      container.innerHTML = results.map(r => r.html).join('');
+      results.forEach(r => renderHourlyChart(r.loc, r.forecastList));
       updatedEl.textContent = '마지막 갱신: ' + new Date().toLocaleString('ko-KR');
     } catch(err){
       container.innerHTML = `<div class="status-msg err">날씨 정보를 불러오지 못했습니다: ${err.message}</div>`;
-      updatedEl.textContent = '';
     }
   }
 
@@ -272,14 +536,15 @@
     `;
   }
 
-  async function initAirQuality(){
-    const strip = document.getElementById('aqi-strip');
+  async function initAirQuality(groupKey){
+    const group = GROUPS[groupKey];
+    const strip = document.getElementById(group.aqiEl);
     if(!API_KEY || API_KEY === 'YOUR_OPENWEATHERMAP_API_KEY'){
       strip.innerHTML = `<div class="status-msg err" style="grid-column:1/-1;">API 키가 설정되지 않아 대기질 정보를 불러올 수 없습니다.</div>`;
       return;
     }
     try{
-      const cards = await Promise.all(LOCATIONS.map(async (loc) => {
+      const cards = await Promise.all(group.locations.map(async (loc) => {
         const aqi = await fetchAirQuality(loc);
         return renderAqiCard(loc, aqi);
       }));
@@ -289,10 +554,78 @@
     }
   }
 
-  init();
-  initAirQuality();
-  setInterval(init, 10 * 60 * 1000); // 10분마다 자동 갱신
-  setInterval(initAirQuality, 10 * 60 * 1000);
+  ['iraq', 'korea'].forEach(g => { initWeather(g); initAirQuality(g); });
+  setInterval(() => ['iraq', 'korea'].forEach(g => initWeather(g)), 10 * 60 * 1000);
+  setInterval(() => ['iraq', 'korea'].forEach(g => initAirQuality(g)), 10 * 60 * 1000);
+
+  // ---------- 월 평균 최고/최저 기온 (기후 평년값, 정적 데이터) ----------
+  // 여러 기후 통계 자료를 종합한 대략적인 평년값입니다.
+  const CLIMATE_BISMAYAH = [
+    { m: '1월',  hi: 16, lo: 4  },
+    { m: '2월',  hi: 19, lo: 6  },
+    { m: '3월',  hi: 23, lo: 10 },
+    { m: '4월',  hi: 29, lo: 15 },
+    { m: '5월',  hi: 36, lo: 20 },
+    { m: '6월',  hi: 41, lo: 24 },
+    { m: '7월',  hi: 44, lo: 26 },
+    { m: '8월',  hi: 43, lo: 26 },
+    { m: '9월',  hi: 40, lo: 22 },
+    { m: '10월', hi: 33, lo: 16 },
+    { m: '11월', hi: 24, lo: 10 },
+    { m: '12월', hi: 17, lo: 6  },
+  ];
+
+  // 기상청 1991-2020 평년값 기준 대략치
+  const CLIMATE_SEOUL = [
+    { m: '1월',  hi: 1,  lo: -6 },
+    { m: '2월',  hi: 4,  lo: -3 },
+    { m: '3월',  hi: 11, lo: 2  },
+    { m: '4월',  hi: 18, lo: 8  },
+    { m: '5월',  hi: 23, lo: 13 },
+    { m: '6월',  hi: 27, lo: 18 },
+    { m: '7월',  hi: 29, lo: 22 },
+    { m: '8월',  hi: 30, lo: 23 },
+    { m: '9월',  hi: 26, lo: 17 },
+    { m: '10월', hi: 19, lo: 9  },
+    { m: '11월', hi: 12, lo: 2  },
+    { m: '12월', hi: 4,  lo: -4 },
+  ];
+
+  // 남해안 기후 통계(Weather.com, Wanderlog 등) 종합 대략치
+  const CLIMATE_TONGYEONG = [
+    { m: '1월',  hi: 6,  lo: 0  },
+    { m: '2월',  hi: 8,  lo: 1  },
+    { m: '3월',  hi: 12, lo: 4  },
+    { m: '4월',  hi: 17, lo: 9  },
+    { m: '5월',  hi: 21, lo: 14 },
+    { m: '6월',  hi: 24, lo: 18 },
+    { m: '7월',  hi: 28, lo: 22 },
+    { m: '8월',  hi: 29, lo: 24 },
+    { m: '9월',  hi: 26, lo: 20 },
+    { m: '10월', hi: 20, lo: 13 },
+    { m: '11월', hi: 14, lo: 7  },
+    { m: '12월', hi: 8,  lo: 2  },
+  ];
+
+  function renderClimateTable(elId, data){
+    const rows = data.map(d => `
+      <tr>
+        <td class="m">${d.m}</td>
+        <td class="hi">${d.hi}°</td>
+        <td class="lo">${d.lo}°</td>
+      </tr>
+    `).join('');
+    document.getElementById(elId).innerHTML = `
+      <thead>
+        <tr><th>월</th><th>평균 최고</th><th>평균 최저</th></tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    `;
+  }
+
+  renderClimateTable('climate-bismayah', CLIMATE_BISMAYAH);
+  renderClimateTable('climate-seoul', CLIMATE_SEOUL);
+  renderClimateTable('climate-tongyeong', CLIMATE_TONGYEONG);
 </script>
 
 </body>
