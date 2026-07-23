@@ -39,6 +39,20 @@
 
   .locations{display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr));gap:20px;}
 
+  /* air quality strip */
+  .aqi-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-bottom:24px;}
+  .aqi-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;display:flex;align-items:center;gap:14px;}
+  .aqi-badge{flex:none;width:52px;height:52px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;}
+  .aqi-badge .num{font-size:20px;font-weight:700;line-height:1;}
+  .aqi-badge .lvl{font-size:9px;margin-top:2px;font-family:'IBM Plex Mono',monospace;}
+  .aqi-body .name{font-size:13px;font-weight:600;color:var(--text);}
+  .aqi-body .detail{font-size:11.5px;color:var(--text-faint);font-family:'IBM Plex Mono',monospace;margin-top:3px;}
+  .aqi-1{background:rgba(95,212,196,0.16);color:var(--cyan);}
+  .aqi-2{background:rgba(143,196,94,0.16);color:#8fc45e;}
+  .aqi-3{background:rgba(232,178,61,0.16);color:var(--sun);}
+  .aqi-4{background:rgba(226,140,90,0.18);color:#e28c5a;}
+  .aqi-5{background:rgba(226,102,90,0.18);color:var(--red);}
+
   .loc-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:24px 26px;}
   .loc-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;}
   .loc-name{font-family:'Space Grotesk',sans-serif;font-size:19px;font-weight:600;}
@@ -84,6 +98,10 @@
     <div class="subtitle">OpenWeatherMap 공개 API로 현재 날씨와 5일 예보를 보여줍니다.</div>
     <div class="updated" id="updated-time">불러오는 중…</div>
   </header>
+
+  <div class="aqi-strip" id="aqi-strip">
+    <div class="status-msg" style="grid-column:1/-1;padding:16px 0;">미세먼지 정보를 불러오는 중…</div>
+  </div>
 
   <div class="locations" id="locations">
     <div class="status-msg" id="global-status">날씨 정보를 불러오는 중입니다…</div>
@@ -221,8 +239,55 @@
     }
   }
 
+  async function fetchAirQuality(loc){
+    const url = `https://api.openweathermap.org/data/2.5/air_pollution?lat=${loc.lat}&lon=${loc.lon}&appid=${API_KEY}`;
+    const res = await fetch(url);
+    if(!res.ok) throw new Error(`대기질 조회 실패 (HTTP ${res.status})`);
+    return res.json();
+  }
+
+  const AQI_LABELS = {
+    1: '좋음', 2: '보통', 3: '민감군 주의', 4: '나쁨', 5: '매우 나쁨',
+  };
+
+  function renderAqiCard(loc, aqi){
+    const level = aqi.list[0].main.aqi; // 1~5
+    const c = aqi.list[0].components;
+    return `
+      <div class="aqi-card">
+        <div class="aqi-badge aqi-${level}">
+          <div class="num">${level}</div>
+          <div class="lvl">AQI</div>
+        </div>
+        <div class="aqi-body">
+          <div class="name">${loc.name} · ${AQI_LABELS[level] || '-'}</div>
+          <div class="detail">PM2.5 ${Math.round(c.pm2_5)} · PM10 ${Math.round(c.pm10)} μg/m³</div>
+        </div>
+      </div>
+    `;
+  }
+
+  async function initAirQuality(){
+    const strip = document.getElementById('aqi-strip');
+    if(!API_KEY || API_KEY === 'YOUR_OPENWEATHERMAP_API_KEY'){
+      strip.innerHTML = `<div class="status-msg err" style="grid-column:1/-1;">API 키가 설정되지 않아 대기질 정보를 불러올 수 없습니다.</div>`;
+      return;
+    }
+    try{
+      const cards = await Promise.all(LOCATIONS.map(async (loc) => {
+        const aqi = await fetchAirQuality(loc);
+        return renderAqiCard(loc, aqi);
+      }));
+      strip.innerHTML = cards.join('');
+    } catch(err){
+      strip.innerHTML = `<div class="status-msg err" style="grid-column:1/-1;">대기질 정보를 불러오지 못했습니다: ${err.message}</div>`;
+    }
+  }
+
   init();
+  initAirQuality();
   setInterval(init, 10 * 60 * 1000); // 10분마다 자동 갱신
+  setInterval(initAirQuality, 10 * 60 * 1000);
 </script>
 
 </body>
