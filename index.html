@@ -6,7 +6,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
 <style>
   :root{
     --bg: #0f1620;
@@ -104,9 +103,8 @@
   .hourly-col{display:flex;}
   .hourly-card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px 16px 12px;width:100%;display:flex;flex-direction:column;}
   .hourly-card h4{font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;margin:0 0 10px;}
-  .hourly-chart-wrap{height:90px;margin-bottom:8px;}
-  .hourly-scroll{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;}
-  .hcell{flex:none;width:58px;text-align:center;background:var(--panel-2);border-radius:9px;padding:8px 4px;}
+  .hourly-scroll{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+  .hcell{text-align:center;background:var(--panel-2);border-radius:9px;padding:8px 4px;}
   .hcell .t{font-size:10px;color:var(--text-faint);font-family:'IBM Plex Mono',monospace;}
   .hcell img{width:26px;height:26px;margin:2px 0;}
   .hcell .p{font-size:9.5px;color:var(--sky);font-family:'IBM Plex Mono',monospace;}
@@ -394,7 +392,6 @@
           <div class="hourly-col">
             <div class="hourly-card">
               <h4>시간별 예보 (3시간 간격)</h4>
-              <div class="hourly-chart-wrap"><canvas id="hourly-${loc.key}"></canvas></div>
               <div class="hourly-scroll">
                 ${hourlySlice.map(item => `
                   <div class="hcell">
@@ -422,64 +419,6 @@
         </div>
       </div>
     `;
-  }
-
-  function renderHourlyChart(loc, forecastList){
-    const canvas = document.getElementById(`hourly-${loc.key}`);
-    if(!canvas) return;
-    if(typeof Chart === 'undefined'){
-      console.warn('Chart.js가 로드되지 않아 시간별 차트를 건너뜁니다.');
-      canvas.replaceWith(Object.assign(document.createElement('div'), {
-        className: 'status-msg',
-        style: 'padding:20px 0;font-size:11px;',
-        textContent: '차트 라이브러리를 불러오지 못했습니다 (아래 시간별 카드는 정상 표시됩니다).',
-      }));
-      return;
-    }
-    const slice = forecastList.slice(0, 8);
-    const labels = slice.map(item => hourLabel(item.dt_txt));
-    const temps = slice.map(item => item.main.temp);
-    const rain = slice.map(item => (item.rain && item.rain['3h']) ? item.rain['3h'] : 0);
-
-    new Chart(canvas, {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [
-          {
-            type: 'bar',
-            label: '강수량(mm/3h)',
-            data: rain,
-            backgroundColor: 'rgba(95,168,212,0.35)',
-            borderRadius: 3,
-            yAxisID: 'y1',
-            order: 2,
-          },
-          {
-            type: 'line',
-            label: '기온',
-            data: temps,
-            borderColor: '#e8b23d',
-            backgroundColor: 'transparent',
-            borderWidth: 2,
-            tension: 0.3,
-            pointRadius: 0,
-            yAxisID: 'y',
-            order: 1,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false }, tooltip: { enabled: true } },
-        scales: {
-          x: { ticks: { color: '#5d6a76', font: { size: 9 } }, grid: { display: false } },
-          y: { display: false },
-          y1: { display: false, beginAtZero: true },
-        },
-      },
-    });
   }
 
   async function fetchUvi(loc){
@@ -511,13 +450,6 @@
         return { loc, html: renderLocationCard(loc, current, daily, forecast.list, uvi), forecastList: forecast.list };
       }));
       container.innerHTML = results.map(r => r.html).join('');
-      results.forEach(r => {
-        try{
-          renderHourlyChart(r.loc, r.forecastList);
-        } catch(chartErr){
-          console.error('시간별 차트 렌더링 실패:', chartErr);
-        }
-      });
       updatedEl.textContent = '마지막 갱신: ' + new Date().toLocaleString('ko-KR');
     } catch(err){
       container.innerHTML = `<div class="status-msg err">날씨 정보를 불러오지 못했습니다: ${err.message}</div>`;
