@@ -6,6 +6,11 @@ on:
     - cron: '0 3 * * *'
   workflow_dispatch: {}   # Actions 탭에서 수동 실행(테스트)도 가능하게
 
+# 워크플로가 스스로 재활성화 요청을 보낼 수 있도록 권한 부여
+permissions:
+  contents: read
+  actions: write
+
 jobs:
   screenshot-and-send:
     runs-on: ubuntu-latest
@@ -35,3 +40,10 @@ jobs:
             -F chat_id="${TELEGRAM_CHAT_ID}" \
             -F caption="바그다드·비스마야 날씨 · $(date -u +'%Y-%m-%d')" \
             -F photo=@screenshot.png
+
+      # 60일 비활성으로 예약 실행이 꺼지지 않도록 매번 재활성화 (타이머 초기화)
+      - name: Keep workflow alive
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow enable "${{ github.workflow }}" --repo "${{ github.repository }}"
